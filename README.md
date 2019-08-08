@@ -1,3 +1,6 @@
+### RT-Cadmium: Seeed Bot ###
+See SeeedBot_Formal_Project_Description.docx for a complete description of the model.
+
 ### RT_ARM_MBED INSTALL ###
 
 Clone this repo into an empty folder
