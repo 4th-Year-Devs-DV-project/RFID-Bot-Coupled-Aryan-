@@ -9,7 +9,7 @@ Run './install.sh' to install dependencies
 
 ### SIMULATE MODELS ### 
 
-cd SeeedBot_RT_ARM_MBED/top_model/
+cd RT-Cadmium-SeeedBot/top_model/
 
 make clean; make all
 
