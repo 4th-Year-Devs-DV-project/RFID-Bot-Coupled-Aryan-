@@ -36,6 +36,7 @@
 #include <cadmium/real_time/arm_mbed/io/digitalOutput.hpp>
 
 #include "../atomics/seeedBotDriver.hpp"
+#include "../atomics/rfid.hpp"
 
 #ifdef RT_ARM_MBED
   #include "../mbed.h"
@@ -112,6 +113,11 @@ int main(int argc, char ** argv) {
   AtomicModelPtr seeedBotDriver = cadmium::dynamic::translate::make_dynamic_atomic_model<SeeedBotDriver, TIME>("seeedBotDriver");
 
 /********************************************/
+/********** RFID *******************/
+/********************************************/
+ AtomicModelPtr rfid1 = cadmium::dynamic::translate::make_dynamic_atomic_model<Rfid, TIME>("rfid1", PB_15, PB_14, D6, D10, D15);
+
+/********************************************/
 /****************** Input *******************/
 /********************************************/
   AtomicModelPtr rightIR = cadmium::dynamic::translate::make_dynamic_atomic_model<DigitalInput, TIME>("rightIR" , A0, TIME("00:00:00:100"));
@@ -136,9 +142,9 @@ int main(int argc, char ** argv) {
   cadmium::dynamic::modeling::Ports iports_TOP = {};
   cadmium::dynamic::modeling::Ports oports_TOP = {};
   #ifdef SCARED_OF_THE_DARK
-  cadmium::dynamic::modeling::Models submodels_TOP =  {lightSensor, seeedBotDriver, rightIR, centerIR, leftIR, rightMotor1, rightMotor2, leftMotor1, leftMotor2};
+  cadmium::dynamic::modeling::Models submodels_TOP =  {lightSensor, seeedBotDriver, rightIR, centerIR, leftIR, rfid1, rightMotor1, rightMotor2, leftMotor1, leftMotor2};
   #else
-  cadmium::dynamic::modeling::Models submodels_TOP =  {seeedBotDriver, rightIR, centerIR, leftIR, rightMotor1, rightMotor2, leftMotor1, leftMotor2};
+  cadmium::dynamic::modeling::Models submodels_TOP =  {seeedBotDriver, rfid1, rightIR, centerIR, leftIR, rightMotor1, rightMotor2, leftMotor1, leftMotor2};
   #endif
   cadmium::dynamic::modeling::EICs eics_TOP = {};
   cadmium::dynamic::modeling::EOCs eocs_TOP = {};
@@ -152,7 +158,8 @@ int main(int argc, char ** argv) {
      #endif
      cadmium::dynamic::translate::make_IC<digitalInput_defs::out, seeedBotDriver_defs::rightIR>("rightIR", "seeedBotDriver"),
      cadmium::dynamic::translate::make_IC<digitalInput_defs::out, seeedBotDriver_defs::leftIR>("leftIR", "seeedBotDriver"),
-     cadmium::dynamic::translate::make_IC<digitalInput_defs::out, seeedBotDriver_defs::centerIR>("centerIR", "seeedBotDriver")
+     cadmium::dynamic::translate::make_IC<digitalInput_defs::out, seeedBotDriver_defs::centerIR>("centerIR", "seeedBotDriver"),
+     cadmium::dynamic::translate::make_IC<rfid_defs::dataOut, seeedBotDriver_defs::rfid>("rfid1","seeedBotDriver")
   };
   CoupledModelPtr TOP = std::make_shared<cadmium::dynamic::modeling::coupled<TIME>>(
    "TOP",
@@ -178,7 +185,7 @@ int main(int argc, char ** argv) {
   // They can be used for testing; however, keep in mind they will add extra delay to your model.
   cadmium::dynamic::engine::runner<NDTime, cadmium::logger::not_logger> r(TOP, {0});
   //cadmium::dynamic::engine::runner<NDTime, log_all> r(TOP, {0});
-  r.run_until(NDTime("00:10:00:000"));
+  r.run_until(NDTime("00:50:00:000"));
 
   #ifndef RT_ARM_MBED
     return 0;

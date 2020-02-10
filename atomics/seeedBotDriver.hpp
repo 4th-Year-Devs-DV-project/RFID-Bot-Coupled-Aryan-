@@ -41,6 +41,7 @@ enum DriveState {right = 0, straight = 1, left = 2, stop = 3, unknown = 4};
         struct leftMotor1 : public out_port<float> { };
         struct leftMotor2 : public out_port<bool> { };
         //Input ports
+        struct rfid : public in_port<double> { };
         struct rightIR : public in_port<bool> { };
         struct centerIR : public in_port<bool> { };
         struct leftIR : public in_port<bool> { };
@@ -59,6 +60,9 @@ enum DriveState {right = 0, straight = 1, left = 2, stop = 3, unknown = 4};
             // default constructor
             SeeedBotDriver() noexcept{
               state.dir = unknown;
+              state.tagType = 0;
+              state.counter = 0;
+              state.counter2 = 0;
             }
             
             // state definition
@@ -68,19 +72,24 @@ enum DriveState {right = 0, straight = 1, left = 2, stop = 3, unknown = 4};
               bool rightIR;
               DriveState dir;
               bool prop;
+              int tagType;
+              int counter;
+              int counter2;
             }; 
             state_type state;
             // ports definition
             #ifdef SCARED_OF_THE_DARK
-            using input_ports=std::tuple<typename defs::rightIR, typename defs::lightSensor, typename defs::centerIR, typename defs::leftIR>;
+            using input_ports=std::tuple<typename defs::rightIR, typename defs::lightSensor, typename defs::centerIR, typename defs::leftIR, typename defs::rfid>;
             #else
-            using input_ports=std::tuple<typename defs::rightIR, typename defs::centerIR, typename defs::leftIR>;
+            using input_ports=std::tuple<typename defs::rightIR, typename defs::centerIR, typename defs::leftIR, typename defs::rfid>;
             #endif
             using output_ports=std::tuple<typename defs::rightMotor1, typename defs::rightMotor2, typename defs::leftMotor1, typename defs::leftMotor2>;
 
             // internal transition
             void internal_transition() {
               state.prop = false;
+              //if(state.tagType ==1 )
+                //state.tagType = 2;
               //Do nothing... 
             }
 
@@ -91,6 +100,34 @@ enum DriveState {right = 0, straight = 1, left = 2, stop = 3, unknown = 4};
               // Note: This will search the message bags for each port and store only the LAST value in the state variable.
               // Saving the inputs in a state variable is required since not all sensors are update at the same time.
               // For example, if a new rightIR reading comes through we need to know the last center and left IR readings 
+              for(const auto &x : get_messages<typename defs::rfid>(mbs)){
+                printf("----------");
+                printf("%f    \n", x);
+                if (x == 123)
+                {
+                 state.tagType = 1;
+                 state.counter = 4;
+                }
+                else if (x == 105)
+                {
+                 state.tagType = 2;
+                 state.counter2 = 1;
+                }
+                else
+                {
+                  if(state.counter > 0)
+                    state.counter--;
+                  if(state.counter2 > 0)
+                    state.counter2--;
+                  else
+                    state.tagType = 0;
+                }
+
+                {
+                  /* code */
+                }
+              }
+
               // to make the drive direction decision.
               for(const auto &x : get_messages<typename defs::rightIR>(mbs)){
                 state.rightIR = !x;
@@ -139,6 +176,7 @@ enum DriveState {right = 0, straight = 1, left = 2, stop = 3, unknown = 4};
               float leftMotorOut1;
               bool leftMotorOut2;  
 
+/*
               switch(state.dir){
                 case DriveState::right:
                   rightMotorOut1 = 0.5;
@@ -169,6 +207,29 @@ enum DriveState {right = 0, straight = 1, left = 2, stop = 3, unknown = 4};
                   leftMotorOut2 = 0;
                 break;
               }
+              */
+              
+              if(state.tagType == 1)
+              {
+                  rightMotorOut1 = 0;
+                  rightMotorOut2 = 0;
+                  leftMotorOut1 = 0;
+                  leftMotorOut2 = 0;
+              }
+              else if(state.tagType == 2)
+              {
+                  rightMotorOut1 = 1;
+                  rightMotorOut2 = 1;
+                  leftMotorOut1 = 0.5;
+                  leftMotorOut2 = 0;
+              }
+              else if(state.tagType == 0 && state.counter == 0 && state.counter2 == 0)
+              {
+                rightMotorOut1 = 0.5;
+                rightMotorOut2 = 0;
+                leftMotorOut1 = 0.5;
+                leftMotorOut2 = 0;
+              }
 
               get_messages<typename defs::rightMotor1>(bags).push_back(rightMotorOut1);
               get_messages<typename defs::rightMotor2>(bags).push_back(rightMotorOut2);
@@ -182,6 +243,16 @@ enum DriveState {right = 0, straight = 1, left = 2, stop = 3, unknown = 4};
             TIME time_advance() const { 
               if(state.prop)
                 return TIME("00:00:00");
+              if(state.counter2 > 0)
+              {
+                printf("TD\n");
+                return TIME("00:50:00");
+              }
+              else if(state.counter > 0)
+              {
+                printf("TD\n");
+                return TIME("00:50:00");
+              }
               return std::numeric_limits<TIME>::infinity();
             }
 
